@@ -18,6 +18,7 @@ def create_sample_gis_data():
             (132.495, 33.853)   # 左上
         ]
         poly = Polygon(coords)
+        # シンプルなGeoDataFrame作成。属性として risk (疑似値) を付与
         gdf = gpd.GeoDataFrame({'risk': [0.5]}, geometry=[poly], crs="EPSG:4326")
         return gdf
     except Exception as e:
@@ -27,11 +28,11 @@ def create_sample_gis_data():
 def create_folium_map(gdf):
     try:
         if not gdf.empty:
-            # GeoDataFrame の重心を中心としてマップ生成
+            # GeoDataFrame の重心を計算してマップの中心に設定
             mean_lat = gdf.geometry.centroid.y.mean()
             mean_lon = gdf.geometry.centroid.x.mean()
         else:
-            mean_lat, mean_lon = 33.85, 132.50  # 愛媛県上島町付近のデフォルト値
+            mean_lat, mean_lon = 33.85, 132.50  # デフォルト：上島町付近
 
         m = folium.Map(location=[mean_lat, mean_lon], zoom_start=14)
         folium.GeoJson(gdf, name="Kamijima Area").add_to(m)
@@ -45,8 +46,10 @@ def create_folium_map(gdf):
 def train_dummy_model():
     try:
         np.random.seed(42)
-        X_train = np.random.rand(100, 5)  # 仮の5個の特徴量
-        y_train = np.random.rand(100)     # 仮のリスクスコア (0～1)
+        # 仮の5個の特徴量を持つ学習データ
+        X_train = np.random.rand(100, 5)
+        # 仮のリスクスコア (0～1の範囲)
+        y_train = np.random.rand(100)
         model = RandomForestRegressor()
         model.fit(X_train, y_train)
         return model
@@ -70,7 +73,7 @@ def generate_pdf_report(risk_score):
         # タイトル
         p.setFont("Helvetica-Bold", 16)
         p.drawString(100, 800, "Kamijima Pipeline Safety Report")
-        # 地域情報と予測結果
+        # 地域情報と予測結果の表示
         p.setFont("Helvetica", 12)
         p.drawString(100, 780, "Location: Kamijima, Ehime, Japan")
         p.drawString(100, 760, f"Predicted Risk Score: {risk_score:.2f}")
@@ -87,7 +90,7 @@ def generate_pdf_report(risk_score):
 def main():
     st.title("Kamijima Pipeline Safety Dashboard")
     
-    # サイドバーで入力パラメータの設定
+    # サイドバーでのパラメータ入力
     st.sidebar.header("Input Parameters (5 Features)")
     feature_values = []
     try:
@@ -100,12 +103,12 @@ def main():
         st.error(f"Error in reading input parameters: {e}")
         return
 
-    # GISデータの生成とマップ表示
+    # GISデータの生成とFoliumマップ表示
     st.header("GIS Visualization (Kamijima Area)")
     try:
         gdf = create_sample_gis_data()
         folium_map = create_folium_map(gdf)
-        # Foliumマップを表示
+        # FoliumマップをStreamlitコンポーネントとして表示
         st.components.v1.html(folium_map._repr_html_(), height=500)
     except Exception as e:
         st.error("Failed to display GIS data.")
@@ -121,7 +124,7 @@ def main():
         st.error("Failed to predict risk.")
         return
 
-    # PDFレポートの自動生成
+    # PDFレポート生成の部分
     st.header("PDF Report Generation")
     try:
         if st.button("Generate PDF Report"):
